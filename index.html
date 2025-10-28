@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Public Survey with Mobile Option</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg:#121212; --card:#1e1e1e; --muted:#cccccc; --accent:#00ffcc; --accent-dark:#00cc99;
+      --input:#2a2a2a; --text:#e0e0e0; --table-even:#2a2a2a;
+    }
+    body { font-family: "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:0; }
+    .container { max-width:1100px; margin:30px auto; padding:22px; background:var(--card); border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,0.6); }
+    h2 { text-align:center; color:var(--accent); margin:0 0 14px; text-shadow:0 0 6px var(--accent); }
+    .topbar { display:flex; gap:8px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    .controls { display:flex; gap:8px; align-items:center; }
+    .searchbox { padding:8px 10px; border-radius:8px; background:var(--input); color:var(--text); border:1px solid #333; }
+    button, .btn { padding:9px 12px; border-radius:8px; border:none; background:var(--accent); color:#000; font-weight:600; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.4); }
+    button:hover, .btn:hover { background:var(--accent-dark); box-shadow:0 0 10px var(--accent); }
+
+    form { display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:8px; }
+    label { font-weight:700; color:var(--muted); margin-bottom:4px; display:block; }
+    input, select, textarea { width:100%; padding:10px; border-radius:8px; background:var(--input); color:var(--text); border:1px solid #333; font-size:14px; }
+    textarea { resize:vertical; }
+    small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+
+    .full { grid-column: 1 / -1; }
+    .consent { grid-column: 1 / -1; display:flex; align-items:flex-start; gap:8px; font-size:14px; background:var(--input); padding:10px; border-radius:8px; border:1px solid #333; }
+    .consent input[type="checkbox"] { width:auto; margin-top:2px; }
+
+    .result { margin-top:18px; padding:14px; background:#171717; border-radius:10px; border:1px solid #222; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; font-size:14px; }
+    th, td { padding:8px; border:1px solid #333; text-align:left; }
+    th { background: rgba(0,255,204,0.12); color:var(--accent); }
+    tr:nth-child(even) { background:var(--table-even); }
+
+    .charts { display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-top:18px; }
+    .chart-card { padding:12px; background: #141414; border-radius:10px; border:1px solid #222; }
+    canvas { width:100% !important; height:260px !important; background:transparent; border-radius:8px; }
+
+    .small { font-size:13px; color:var(--muted); }
+    .muted { color:var(--muted); }
+
+    .light body, .light :root {
+      --bg:#f5f5f5; --card:#ffffff; --muted:#444; --accent:#00796b; --accent-dark:#00695c;
+      --input:#ffffff; --text:#111; --table-even:#f1f1f1;
+    }
+
+    @media (max-width:900px){
+      form { grid-template-columns: 1fr; }
+      .charts { grid-template-columns: 1fr; }
+      .topbar { flex-direction:column; align-items:stretch; gap:8px; }
+    }
+
+     /* Theme Variations */
+     .theme-purple { --accent:#c77dff; --accent-dark:#9d4edd; }
+    .theme-orange { --accent:#ffb84d; --accent-dark:#ff9900; }
+  </style>
+</head>
+<body>
+  <div class="container" id="pageContainer">
+    <h2>Public Survey with Mobile Option</h2>
+
+    <div class="topbar">
+      <div class="controls">
+        <input id="searchInput" class="searchbox" placeholder="Search table (name/email/mobile/any)..." />
+        <button id="clearSearch" class="btn small">Clear</button>
+        <button id="downloadCsv" class="btn small">Download CSV</button>
+        <button id="clearAll" class="btn small">Clear All</button>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button id="themeToggle" class="btn small">Toggle Light/Dark</button>
+        <span class="small muted">Responses stored locally</span>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <form id="surveyForm" autocomplete="off">
+      <div>
+        <label for="name">Full Name</label>
+        <input type="text" id="name" required />
+      </div>
+
+      <div>
+        <label for="email">Email</label>
+        <input type="email" id="email" required />
+      </div>
+
+      <div>
+        <label for="mobile">Mobile Number</label>
+        <input type="tel" id="mobile" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number" />
+        <small>Optional</small>
+      </div>
+
+      <div>
+        <label for="age">Age</label>
+        <input type="number" id="age" required min="10" max="120" />
+      </div>
+
+      <div>
+        <label for="gender">Gender</label>
+        <select id="gender" required>
+          <option value="">-- Select --</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+          <option>Prefer not to say</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label for="satisfaction">How satisfied are you with public services?</label>
+        <select id="satisfaction" required>
+          <option value="">-- Select --</option>
+          <option>Very Satisfied</option>
+          <option>Satisfied</option>
+          <option>Neutral</option>
+          <option>Dissatisfied</option>
+          <option>Very Dissatisfied</option>
+        </select>
+      </div>
+
+      <div class="full">
+        <label for="feedback">Any Suggestions / Feedback</label>
+        <textarea id="feedback" rows="3" placeholder="Type suggestions... (optional)"></textarea>
+      </div>
+
+      <div class="full" style="display:flex; gap:10px;">
+        <button type="submit" class="btn">Submit Survey</button>
+        <button type="button" id="fillDemo" class="btn" style="background:#ffaa00">Fill Demo</button>
+      </div>
+    </form>
+
+    <!-- RESPONSES -->
+    <div class="result">
+      <h3>Survey Responses</h3>
+      <div class="small muted">Total responses: <span id="totalCount">0</span></div>
+      <table id="responsesTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>Age</th><th>Gender</th><th>Satisfaction</th><th>Feedback</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts">
+      <div class="chart-card">
+        <h4>Age Distribution</h4>
+        <canvas id="ageChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Satisfaction Levels</h4>
+        <canvas id="satisfactionChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Gender Distribution</h4>
+        <canvas id="genderChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Mobile Provided (Yes / No)</h4>
+        <canvas id="mobileChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4>Top Feedback Words</h4>
+        <canvas id="feedbackChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'survey_responses_v1';
+    const form = document.getElementById('surveyForm');
+    const tableBody = document.querySelector('#responsesTable tbody');
+    const totalCountEl = document.getElementById('totalCount');
+    const searchInput = document.getElementById('searchInput');
+    const downloadCsvBtn = document.getElementById('downloadCsv');
+    const clearAllBtn = document.getElementById('clearAll');
+    const clearSearchBtn = document.getElementById('clearSearch');
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const fillDemoBtn = document.getElementById('fillDemo');
+
+    let responses = [];
+
+    let ageChart, satisfactionChart, genderChart, mobileChart, feedbackChart;
+
+    function createCharts(){
+      const ageCtx = document.getElementById('ageChart').getContext('2d');
+      const satCtx = document.getElementById('satisfactionChart').getContext('2d');
+      const genCtx = document.getElementById('genderChart').getContext('2d');
+      const mobCtx = document.getElementById('mobileChart').getContext('2d');
+      const fbCtx = document.getElementById('feedbackChart').getContext('2d');
+
+      ageChart = new Chart(ageCtx, {
+        type: 'bar',
+        data: { labels: [], datasets: [{ label: 'Age', data: [], backgroundColor: 'rgba(0,255,204,0.9)' }] },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+      });
+
+      satisfactionChart = new Chart(satCtx, {
+        type: 'pie',
+        data: { labels: ['Very Satisfied','Satisfied','Neutral','Dissatisfied','Very Dissatisfied'], datasets:[{ data:[0,0,0,0,0], backgroundColor:['#00ffcc','#00cc99','#ffaa00','#ff5555','#ff00aa'] }] },
+        options:{ responsive:true, maintainAspectRatio:false }
+      });
+
+      genderChart = new Chart(genCtx, {
+        type: 'doughnut',
+        data: { labels:['Male','Female','Other','Prefer not to say'], datasets:[{ data:[0,0,0,0], backgroundColor:['#66bb6a','#42a5f5','#ffcc80','#bdbdbd'] }] },
+        options:{ responsive:true, maintainAspectRatio:false }
+      });
+
+      mobileChart = new Chart(mobCtx, {
+        type: 'pie',
+        data: { labels:['With Mobile','Without Mobile'], datasets:[{ data:[0,0], backgroundColor:['#4caf50','#f44336'] }] },
+        options:{ responsive:true, maintainAspectRatio:false }
+      });
+
+      feedbackChart = new Chart(fbCtx, {
+        type: 'bar',
+        data: { labels: [], datasets:[{ label: 'Word Count', data: [], backgroundColor: 'rgba(255,170,0,0.9)' }] },
+        options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+      });
+    }
+
+    function saveStorage(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(responses));
+    }
+
+    function loadStorage(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      responses = raw ? JSON.parse(raw) : [];
+    }
+
+    function escapeHtml(text){
+      if (!text) return '';
+      return text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    }
+
+    function renderTable(){
+      tableBody.innerHTML = '';
+      responses.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i+1}</td>
+                        <td>${escapeHtml(r.name)}</td>
+                        <td>${escapeHtml(r.email)}</td>
+                        <td>${escapeHtml(r.mobile || 'N/A')}</td>
+                        <td>${r.age}</td>
+                        <td>${escapeHtml(r.gender)}</td>
+                        <td>${escapeHtml(r.satisfaction)}</td>
+                        <td>${escapeHtml(r.feedback || 'N/A')}</td>`;
+        tableBody.appendChild(tr);
+      });
+      totalCountEl.textContent = responses.length;
+    }
+
+    function updateCharts(){
+      
+      const ages = responses.map(r => r.age);
+      ageChart.data.labels = ages.map((_, i) => 'P' + (i+1));
+      ageChart.data.datasets[0].data = ages;
+      ageChart.update();
+
+      
+      const satLabels = ['Very Satisfied','Satisfied','Neutral','Dissatisfied','Very Dissatisfied'];
+      const satCounts = satLabels.map(l => responses.filter(r => r.satisfaction === l).length);
+      satisfactionChart.data.datasets[0].data = satCounts;
+      satisfactionChart.update();
+
+      
+      const genLabels = ['Male','Female','Other','Prefer not to say'];
+      const genCounts = genLabels.map(g => responses.filter(r => r.gender === g).length);
+      genderChart.data.datasets[0].data = genCounts;
+      genderChart.update();
+
+    
+      const yesCount = responses.filter(r => r.mobile && r.mobile.trim() !== '').length;
+      const noCount = responses.length - yesCount;
+      mobileChart.data.datasets[0].data = [yesCount, noCount];
+      mobileChart.update();
+
+      
+      const stop = new Set(['the','and','or','a','an','to','in','of','is','are','be','with','for','on','at','it']);
+      const words = {};
+      responses.forEach(r => {
+        if (!r.feedback) return;
+        const cleaned = r.feedback.toLowerCase().replace(/[^\w\s]/g, ' ');
+        cleaned.split(/\s+/).forEach(w => {
+          if (!w || w.length < 3) return;
+          if (stop.has(w)) return;
+          words[w] = (words[w] || 0) + 1;
+        });
+      });
+      const items = Object.entries(words).sort((a,b) => b[1] - a[1]).slice(0, 8);
+      feedbackChart.data.labels = items.map(i => i[0]);
+      feedbackChart.data.datasets[0].data = items.map(i => i[1]);
+      feedbackChart.update();
+    }
+
+    function downloadCSV(){
+      if (responses.length === 0) {
+        alert('No responses to download');
+        return;
+      }
+      const header = ['Name','Email','Mobile','Age','Gender','Satisfaction','Feedback'];
+      const rows = responses.map(r => [
+        r.name, r.email, r.mobile || '', r.age, r.gender, r.satisfaction, r.feedback || ''
+      ]);
+      const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'survey_responses.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Search
+    function applySearch(){
+      const q = searchInput.value.trim().toLowerCase();
+      document.querySelectorAll('#responsesTable tbody tr').forEach(tr => {
+        tr.style.display = q === '' ? '' : (tr.innerText.toLowerCase().includes(q) ? '' : 'none');
+      });
+    }
+
+    // Init
+    (function init(){
+      createCharts();
+      loadStorage();
+      renderTable();
+      updateCharts();
+    })();
+
+    // Event listeners
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const mobile = document.getElementById('mobile').value.trim();
+      const age = parseInt(document.getElementById('age').value, 10);
+      const gender = document.getElementById('gender').value;
+      const satisfaction = document.getElementById('satisfaction').value;
+      const feedback = document.getElementById('feedback').value.trim();
+
+      if (!name || !email || !age || !gender || !satisfaction) {
+        alert('Please fill all required fields.');
+        return;
+      }
+      // Email format check
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
+        return;
+      }
+      // Prevent duplicate email
+      if (responses.some(r => r.email === email)) {
+        alert('This email has already submitted a response.');
+        return;
+      }
+
+      const resp = { name, email, mobile, age, gender, satisfaction, feedback, ts: Date.now() };
+      responses.push(resp);
+      saveStorage();
+      renderTable();
+      updateCharts();
+      form.reset();
+      document.getElementById('name').focus();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      applySearch();
+    });
+    searchInput.addEventListener('input', applySearch);
+
+    downloadCsvBtn.addEventListener('click', downloadCSV);
+
+    clearAllBtn.addEventListener('click', () => {
+      if (!confirm('Are you sure you want to clear ALL responses?')) return;
+      responses = [];
+      saveStorage();
+      renderTable();
+      updateCharts();
+    });
+
+    themeToggleBtn.addEventListener('click', () => {
+      document.documentElement.classList.toggle('light');
+    });
+
+    fillDemoBtn.addEventListener('click', () => {
+      const demos = [
+        { name:'Aisha', email:'aisha'+Date.now()+'@ex.com', mobile:'9876543210', age:25, gender:'Female', satisfaction:'Satisfied', feedback:'Clean roads.' },
+        { name:'Ravi', email:'ravi'+Date.now()+'@ex.com', mobile:'', age:34, gender:'Male', satisfaction:'Very Satisfied', feedback:'Good services.' },
+        { name:'Sunita', email:'sunita'+Date.now()+'@ex.com', mobile:'9123456789', age:46, gender:'Female', satisfaction:'Neutral', feedback:'Health center hours should improve.' },
+      ];
+      demos.forEach(d => {
+        responses.push({ ...d, ts: Date.now() });
+      });
+      saveStorage();
+      renderTable();
+      updateCharts();
+      updateCounts();
+    });
+
+  </script>
+</body>
+</html>

@@ -89,7 +89,6 @@
         <label for="email">Email</label>
         <input type="email" id="email" required />
       </div>
-      
        <div>
         <label for="instagram">instagram</label>
         <input type="instagram" id="instagram" required />
@@ -147,7 +146,7 @@
       <table id="responsesTable">
         <thead>
           <tr>
-            <th>#</th><th>Name</th><th>Email</th><th>Mobile</th><th>Age</th><th>Gender</th><th>Satisfaction</th><th>Feedback</th>
+            <th>#</th><th>Name</th><th>Email</th><th>instagram</th><th>Mobile</th><th>Age</th><th>Gender</th><th>Satisfaction</th><th>Feedback</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -314,7 +313,7 @@
       }
       const header = ['Name','Email','instagram,'Mobile','Age','Gender','Satisfaction','Feedback'];
       const rows = responses.map(r => [
-        r.name, r.email, r.mobile || '', r.age, r.gender, r.satisfaction, r.feedback || ''
+        r.name, r.email, r.instagram, r.mobile || '', r.age, r.gender, r.satisfaction, r.feedback || ''
       ]);
       const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });

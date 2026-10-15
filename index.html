@@ -89,7 +89,12 @@
         <label for="email">Email</label>
         <input type="email" id="email" required />
       </div>
-
+      
+       <div>
+        <label for="instagram">instagram</label>
+        <input type="instagram" id="instagram" required />
+      </div>
+      
       <div>
         <label for="mobile">Mobile Number</label>
         <input type="tel" id="mobile" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit number" />
@@ -307,7 +312,7 @@
         alert('No responses to download');
         return;
       }
-      const header = ['Name','Email','Mobile','Age','Gender','Satisfaction','Feedback'];
+      const header = ['Name','Email','instagram,'Mobile','Age','Gender','Satisfaction','Feedback'];
       const rows = responses.map(r => [
         r.name, r.email, r.mobile || '', r.age, r.gender, r.satisfaction, r.feedback || ''
       ]);
@@ -342,13 +347,14 @@
       e.preventDefault();
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim().toLowerCase();
+      const email = document.getElementById('instagram').value.trim().toLowerCase();
       const mobile = document.getElementById('mobile').value.trim();
       const age = parseInt(document.getElementById('age').value, 10);
       const gender = document.getElementById('gender').value;
       const satisfaction = document.getElementById('satisfaction').value;
       const feedback = document.getElementById('feedback').value.trim();
 
-      if (!name || !email || !age || !gender || !satisfaction) {
+      if (!name || !email || !instagram || !age || !gender || !satisfaction) {
         alert('Please fill all required fields.');
         return;
       }
@@ -362,8 +368,20 @@
         alert('This email has already submitted a response.');
         return;
       }
+      
+      }
+      // instagram format check
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(instagram)) {
+        alert('Please enter a valid instagram address.');
+        return;
+      }
+      // Prevent duplicate instagram
+      if (responses.some(r => r.instagram === instagram)) {
+        alert('This instagram has already submitted a response.');
+        return;
+      }
 
-      const resp = { name, email, mobile, age, gender, satisfaction, feedback, ts: Date.now() };
+      const resp = { name, email, instagram, mobile, age, gender, satisfaction, feedback, ts: Date.now() };
       responses.push(resp);
       saveStorage();
       renderTable();
